@@ -1,0 +1,17 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.gradle.enabled": true,
+    "java.jdt.ls.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.29.7-hotspot",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-11",
+            "path": "C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.29.7-hotspot"
+        }
+    ],
+    "java.trace.server": "verbose",
+    "java.import.gradle.wrapper.enabled": true,
+    "java.project.referencedLibraries": [
+        "${workspaceFolder}/lib/*.jar"
+    ],
+    "java.import.gradle.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.29.7-hotspot"
+}

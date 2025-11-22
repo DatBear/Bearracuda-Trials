@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Run RuneLite (Test Loader)",
+      "request": "launch",
+      "mainClass": "com.datbear.BearracudaTrialsPluginTest",
+      "classPaths": [
+        "${workspaceFolder}/build/classes/java/test",
+        "${workspaceFolder}/build/resources/test",
+        "${workspaceFolder}/build/classes/java/main",
+        "${workspaceFolder}/build/resources/main",
+        "${workspaceFolder}/lib/*"
+      ],
+      "preLaunchTask": "Gradle: Copy Runtime Deps",
+      "console": "internalConsole",
+      "cwd": "${workspaceFolder}",
+      "vmArgs": "-ea -Dfile.encoding=UTF-8",
+      "args": [
+        "--developer-mode"
+      ]
+    }
+  ]
+}
