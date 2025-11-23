@@ -56,6 +56,9 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     private final Set<String> CREW_MEMBER_NAMES = Set.of("Ex-Captain Siad", "Jobless Jim");
 
+    final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
+    final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159, 13160);
+
     private TrialInfo currentTrial = null;
 
     @Getter(AccessLevel.PACKAGE)
@@ -247,22 +250,134 @@ public class BearracudaTrialsPlugin extends Plugin {
     );
 
     private static final List<WorldPoint> JubblyMarlinBestLine = List.of(
-            new WorldPoint(2436, 3018, 0),
+            /*0*/new WorldPoint(2436, 3018, 0),
+            /*1*/new WorldPoint(2424, 3025, 0),
+            /*2*/new WorldPoint(2412, 3026, 0),
+            /*3*/new WorldPoint(2405, 3023, 0),
+            /*4*/new WorldPoint(2400, 3011, 0),
+            /*5*/new WorldPoint(2396, 3009, 0),
+            /*6*/new WorldPoint(2373, 3009, 0),
+            /*7*/new WorldPoint(2350, 2977, 0),
+            /*8*/new WorldPoint(2332, 2974, 0),
+            /*9*/new WorldPoint(2303, 2975, 0),
+            /*10*/new WorldPoint(2281, 2980, 0),
+            /*11*/new WorldPoint(2265, 2991, 0),
+            /*12*/new WorldPoint(2251, 2994, 0),
+            /*13*/new WorldPoint(2248, 3000, 0),
+            /*14*/new WorldPoint(2268, 3013, 0),
+            /*15*/new WorldPoint(2280, 3000, 0),
+            /*16*/new WorldPoint(2298, 3001, 0),
+            /*17*/new WorldPoint(2302, 3017, 0),
+            /*18*/new WorldPoint(2316, 3023, 0),
+            /*19*/new WorldPoint(2350, 2981, 0),
+            /*20*/new WorldPoint(2359, 2958, 0),
+            /*21*/new WorldPoint(2375, 2936, 0),
+            /*22*/new WorldPoint(2387, 2940, 0),
+            /*23*/new WorldPoint(2420, 2939, 0),
+            /*24*/new WorldPoint(2434, 2942, 0),
+            /*25*/new WorldPoint(2435, 2967, 0),
+            /*26*/new WorldPoint(2435, 2986, 0),
+            /*27*/new WorldPoint(2437, 2991, 0),
+            /*28*/new WorldPoint(2433, 3004, 0),
+            /*29*/new WorldPoint(2435, 3010, 0),
+            ///*29*/new WorldPoint(2440, 3009, 0),
+            /*30*/new WorldPoint(2422, 3012, 0),
+            /*31*/new WorldPoint(2415, 3000, 0),
+            /*32*/new WorldPoint(2414, 2990, 0),
+            /*33*/new WorldPoint(2423, 2978, 0),
+            /*34*/new WorldPoint(2421, 2964, 0),
+            /*35*/new WorldPoint(2417, 2957, 0),
+            /*36*/new WorldPoint(2405, 2950, 0),
+            /*37*/new WorldPoint(2390, 2957, 0),
+            /*38*/new WorldPoint(2380, 2974, 0),
+            /*39*/new WorldPoint(2384, 2985, 0),
+            /*40*/new WorldPoint(2384, 2989, 0),
+            /*41*/new WorldPoint(2369, 2997, 0),
+            /*42*/new WorldPoint(2359, 2991, 0),
+            /*43*/new WorldPoint(2350, 2977, 0),
+            /*44*/new WorldPoint(2340, 2974, 0),
+            /*45*/new WorldPoint(2305, 2974, 0),
+            /*46*/new WorldPoint(2288, 2980, 0),
+            /*47*/new WorldPoint(2278, 2981, 0),
+            /*48*/new WorldPoint(2268, 2990, 0),
+            /*49*/new WorldPoint(2256, 2992, 0),
+            /*50*/new WorldPoint(2238, 3006, 0),
+            /*51*/new WorldPoint(2242, 3020, 0),
+            /*52*/new WorldPoint(2251, 3025, 0),
+            /*53*/new WorldPoint(2257, 3024, 0),
+            /*54*/new WorldPoint(2280, 2999, 0),
+            /*55*/new WorldPoint(2292, 2997, 0), //wind mote HERE
+            /*56*/new WorldPoint(2312, 2987, 0),
+            /*57*/new WorldPoint(2324, 2984, 0),
+            /*58*/new WorldPoint(2333, 2977, 0),
+            /*59*/new WorldPoint(2335, 2954, 0),
+            /*60*/new WorldPoint(2345, 2931, 0),
+            /*61*/new WorldPoint(2365, 2928, 0),
+            /*62*/new WorldPoint(2378, 2940, 0),
+            /*63*/new WorldPoint(2395, 2939, 0),
+            /*64*/new WorldPoint(2400, 2927, 0),
+            /*65*/new WorldPoint(2417, 2924, 0),
+            /*66*/new WorldPoint(2427, 2921, 0),
+            /*67*/new WorldPoint(2442, 2927, 0),
+            /*68*/new WorldPoint(2454, 2930, 0),
+            /*69*/new WorldPoint(2469, 2953, 0),
+            /*70*/new WorldPoint(2447, 2974, 0),
+            /*71*/new WorldPoint(2447, 2986, 0), //wind mote HERE
+            /*72*/new WorldPoint(2445, 3009, 0),
+            /*73*/new WorldPoint(2437, 3010, 0),
+            /*74*/new WorldPoint(2434, 3007, 0),
+            /*75*/new WorldPoint(2403, 3017, 0),
+            /*76*/new WorldPoint(2395, 3020, 0),
+            /*77*/new WorldPoint(2387, 3020, 0),
+            /*78*/new WorldPoint(2378, 3026, 0),
+            /*79*/new WorldPoint(2371, 3022, 0),
+            /*80*/new WorldPoint(2355, 3023, 0),
+            /*81*/new WorldPoint(2343, 3031, 0),
+            /*82*/new WorldPoint(2329, 3030, 0),
+            /*83*/new WorldPoint(2313, 3045, 0),
+            /*84*/new WorldPoint(2304, 3038, 0),
+            /*85*/new WorldPoint(2313, 3025, 0),
+            /*86*/new WorldPoint(2341, 3007, 0),
+            /*87*/new WorldPoint(2355, 3005, 0),
+            /*88*/new WorldPoint(2361, 3000, 0),
+            /*89*/new WorldPoint(2390, 2986, 0),
+            /*90*/new WorldPoint(2418, 2961, 0),
+            /*91*/new WorldPoint(2430, 2953, 0), //shoot teal
+            /*92*/new WorldPoint(2435, 2965, 0),
+            /**/new WorldPoint(2433, 3000, 0),
 
             new WorldPoint(2436, 3023, 0) // end
     );
 
     private static final List<ToadFlagColors> JubblyMarlinToadOrder = List.of(
-
-    //
+            ToadFlagColors.Yellow,
+            ToadFlagColors.Red,
+            ToadFlagColors.Orange,
+            ToadFlagColors.Teal,
+            ToadFlagColors.Pink,
+            ToadFlagColors.White,
+            ToadFlagColors.Teal,
+            ToadFlagColors.Orange,
+            ToadFlagColors.Blue,
+            ToadFlagColors.Yellow,
+            ToadFlagColors.Orange,
+            ToadFlagColors.White,
+            ToadFlagColors.Pink,
+            ToadFlagColors.Red,
+            ToadFlagColors.Blue,
+            ToadFlagColors.Teal,
+            ToadFlagColors.Pink,
+            ToadFlagColors.White//end    
     );
+
+    private static final List<Integer> JubblyMarlinWindMoteIndices = List.of(13, 55, 71, 89, 90);
 
     @Getter(AccessLevel.PACKAGE)
     private static final List<TrialRoute> AllTrialRoutes = List.of(
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Swordfish, TemporTantrumSwordfishBestLine),
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Marlin, TemporTantrumMarlinBestLine),
-            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, JubblySharkToadOrder),
-            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder));
+            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, JubblySharkToadOrder, Collections.emptyList()),
+            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder, JubblyMarlinWindMoteIndices));
 
     @Getter(AccessLevel.PACKAGE)
     private int lastVisitedIndex = -1;
@@ -295,7 +410,7 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (route == null || route.Points == null || route.Points.isEmpty() || limit <= 0) {
             return Collections.emptyList();
         }
-        int start = lastVisitedIndex + 1;
+        int start = lastVisitedIndex;
         if (start >= route.Points.size()) {
             return Collections.emptyList();
         }
@@ -317,7 +432,6 @@ public class BearracudaTrialsPlugin extends Plugin {
         }
 
         List<WorldPoint> out = new ArrayList<>();
-        out.add(player);
         for (int idx : nextIdx) {
             WorldPoint real = route.Points.get(idx);
             out.add(real);
@@ -327,11 +441,16 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     // Cache of currently-spawning GameObjects keyed by object id. We only track
     // objects whose ids appear in any ToadFlagGameObject.All GameObjectIds set.
-    private final Map<Integer, List<GameObject>> gameObjectCacheById = new HashMap<>();
+    private final Map<Integer, List<GameObject>> toadFlagsById = new HashMap<>();
+    @Getter(AccessLevel.PACKAGE)
+    private final Map<Integer, GameObject> trialCratesById = new HashMap<>();
 
     // last position where the menu was opened (canvas coordinates) — used for debug 'Copy tile worldpoint'
     // so we copy according to menu-open location instead of where the mouse is at click time.
-    private volatile Point lastMenuCanvasPosition = null;
+    @Getter(AccessLevel.PACKAGE)
+    private Point lastMenuCanvasPosition = null;
+    @Getter(AccessLevel.PACKAGE)
+    private WorldPoint lastMenuCanvasWorldPoint = null;
 
     @Getter(AccessLevel.PACKAGE)
     private int cargoItemCount = 0;
@@ -411,12 +530,26 @@ public class BearracudaTrialsPlugin extends Plugin {
         GameObject obj = event.getGameObject();
         if (obj == null)
             return;
+        //get the animation id
         int id = obj.getId();
         // Only cache objects that match any ToadFlagGameObject ids
         boolean isToadFlag = ToadFlagGameObject.All.stream().anyMatch(t -> t.GameObjectIds.contains(id));
         if (isToadFlag) {
-            gameObjectCacheById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
-            log.info("Cached gameobject spawn id={} -> totalCount={}", id, gameObjectCacheById.get(id).size());
+            toadFlagsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
+            log.info("Cached gameobject spawn id={} -> totalCount={}", id, toadFlagsById.get(id).size());
+        }
+        Renderable renderable = obj.getRenderable();
+        if (renderable != null) {
+            if (renderable instanceof DynamicObject) {
+                DynamicObject dynObj = (DynamicObject) renderable;
+                var anim = dynObj.getAnimation();
+                int animId = anim != null ? anim.getId() : -1;
+                if (TRIAL_CRATE_ANIMS.contains(animId)) {
+                    trialCratesById.put(id, obj);
+                } else if (SPEED_BOOST_ANIMS.contains(animId)) {
+
+                }
+            }
         }
     }
 
@@ -426,13 +559,13 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (obj == null)
             return;
         int id = obj.getId();
-        List<GameObject> list = gameObjectCacheById.get(id);
-        if (list != null) {
-            list.removeIf(x -> x == null || x.getHash() == obj.getHash());
-            if (list.isEmpty()) {
-                gameObjectCacheById.remove(id);
+        List<GameObject> cacheList = toadFlagsById.get(id);
+        if (cacheList != null) {
+            cacheList.removeIf(x -> x == null || x.getHash() == obj.getHash());
+            if (cacheList.isEmpty()) {
+                toadFlagsById.remove(id);
             }
-            log.info("Cached gameobject despawn id={} -> remaining={}", id, gameObjectCacheById.getOrDefault(id, Collections.emptyList()).size());
+            log.info("Cached gameobject despawn id={} -> remaining={}", id, toadFlagsById.getOrDefault(id, Collections.emptyList()).size());
         }
     }
 
@@ -510,7 +643,7 @@ public class BearracudaTrialsPlugin extends Plugin {
             // Use the stored menu-open position; fall back to current mouse pos
             Point mouse = lastMenuCanvasPosition != null ? lastMenuCanvasPosition
                     : client.getMouseCanvasPosition();
-            WorldPoint tileWp = null;
+            lastMenuCanvasWorldPoint = null;
 
             try {
                 WorldView wv = client.getTopLevelWorldView();
@@ -530,11 +663,11 @@ public class BearracudaTrialsPlugin extends Plugin {
                             if (poly == null || mouse == null)
                                 continue;
                             if (poly.contains(mouse.getX(), mouse.getY())) {
-                                tileWp = WorldPoint.fromLocalInstance(client, lp);
+                                lastMenuCanvasWorldPoint = WorldPoint.fromLocalInstance(client, lp);
                                 break;
                             }
                         }
-                        if (tileWp != null)
+                        if (lastMenuCanvasWorldPoint != null)
                             break;
                     }
                 }
@@ -542,8 +675,8 @@ public class BearracudaTrialsPlugin extends Plugin {
                 // fall back to null
             }
 
-            WorldPoint wp = tileWp == null ? client.getLocalPlayer() == null ? null
-                    : client.getLocalPlayer().getWorldLocation() : tileWp;
+            WorldPoint wp = lastMenuCanvasWorldPoint == null ? client.getLocalPlayer() == null ? null
+                    : client.getLocalPlayer().getWorldLocation() : lastMenuCanvasWorldPoint;
             if (wp == null)
                 return;
 
@@ -631,14 +764,10 @@ public class BearracudaTrialsPlugin extends Plugin {
         client.setMenuEntries(list.toArray(new MenuEntry[0]));
     }
 
-    private void SwapMenu(Menu menu) {
-        // var entries = menu.getMenuEntries();
-        // menu.setMenuEntries(entries);
-    }
-
     private void reset() {
         // Clear runtime caches and tracked state on region change / shutdown
-        gameObjectCacheById.clear();
+        toadFlagsById.clear();
+        trialCratesById.clear();
     }
 
     /**
@@ -646,7 +775,7 @@ public class BearracudaTrialsPlugin extends Plugin {
      * game object id. Returns empty list if no cached objects.
      */
     public List<GameObject> getCachedGameObjectsForId(int id) {
-        var list = gameObjectCacheById.get(id);
+        var list = toadFlagsById.get(id);
         return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
     }
 
@@ -656,7 +785,7 @@ public class BearracudaTrialsPlugin extends Plugin {
             return out;
         }
         for (int id : ids) {
-            var list = gameObjectCacheById.get(id);
+            var list = toadFlagsById.get(id);
             if (list != null && !list.isEmpty()) {
                 out.addAll(list);
             }
@@ -735,10 +864,6 @@ public class BearracudaTrialsPlugin extends Plugin {
             return;
         }
 
-        // Check the spawned object's animation via the renderable. We're
-        // looking for
-        // the crate/speed boost animation ids (TRIAL_CRATE_ANIM /
-        // SPEED_BOOST_ANIM).
         Renderable renderable = gameObject.getRenderable();
         if (!(renderable instanceof net.runelite.api.DynamicObject)) {
             return; // not an animating dynamic object
@@ -749,9 +874,6 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (anim == null) {
             return;
         }
-
-        final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
-        final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159);
 
         final int animId = anim.getId();
         final boolean isCrateAnim = TRIAL_CRATE_ANIMS.contains(animId);

@@ -2,11 +2,14 @@ package com.datbear;
 
 import net.runelite.api.Point;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.api.*;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
+import net.runelite.client.ui.overlay.OverlayUtil;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import javax.inject.Inject;
@@ -25,11 +28,17 @@ public class BearracudaTrialsOverlay extends Overlay {
     private ItemManager itemManager;
 
     @Inject
+    private SpriteManager spriteManager;
+
+    @Inject
     private ModelOutlineRenderer modelOutlineRenderer;
 
     private Client client;
     private BearracudaTrialsPlugin plugin;
     private BearracudaTrialsConfig config;
+
+    private final int MOTE_SPRITE_ID = 7075;
+    private int nextMoteIndex = -1;
 
     @Inject
     public BearracudaTrialsOverlay(Client client, BearracudaTrialsPlugin plugin,
@@ -55,8 +64,8 @@ public class BearracudaTrialsOverlay extends Overlay {
         if (playerLoc == null)
             return null;
 
-        // Find the active route and render it (polyline + dots + optional
-        // boat->first)
+        renderLastMenuCanvasWorldPointOutline(graphics);
+
         var active = plugin.getActiveTrialRoute();
         if (active == null) {
             if (config.showDebugOverlay()) {
@@ -68,6 +77,8 @@ public class BearracudaTrialsOverlay extends Overlay {
         var boatLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
 
         highlightToadFlags(graphics, boatLoc);
+        highlightCrates(graphics);
+        renderWindMote(graphics);
 
         // Draw only the next up-to-5 waypoints (linear polyline beginning at the player's instance location).
         var visible = plugin.getVisibleActiveLineForPlayer(playerLoc, 5);
@@ -81,8 +92,7 @@ public class BearracudaTrialsOverlay extends Overlay {
             if (active.Points == null || idx < 0 || idx >= active.Points.size())
                 continue;
             var real = active.Points.get(idx);
-            var wp = WorldPerspective
-                    .getInstanceWorldPointFromReal(client, client.getTopLevelWorldView(), real);
+            var wp = WorldPerspective.getInstanceWorldPointFromReal(client, client.getTopLevelWorldView(), real);
             if (wp == null)
                 continue;
             var pts = WorldPerspective.worldToCanvasWithOffset(client, wp, wp.getPlane());
@@ -91,18 +101,6 @@ public class BearracudaTrialsOverlay extends Overlay {
             var p = pts.get(0);
 
             renderLineDots(graphics, wp, GREEN, idx, p);
-        }
-
-        // Draw a single line from the player's boat location to the first unvisited waypoint (if any)
-        if (boatLoc != null && plugin.getActiveTrialRoute() != null) {
-            var next = plugin.getNextUnvisitedIndicesForActiveRoute(1);
-            if (!next.isEmpty() && active.Points != null && next.get(0) < active.Points.size()) {
-                var real = active.Points.get(next.get(0));
-                if (real != null) {
-                    var two = java.util.List.of(boatLoc, real);
-                    WorldLines.drawLinesOnWorld(graphics, client, two, Color.CYAN, boatLoc.getPlane());
-                }
-            }
         }
 
         if (config.showDebugOverlay()) {
@@ -140,12 +138,12 @@ public class BearracudaTrialsOverlay extends Overlay {
         if (player == null)
             return;
 
-        var boatLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
-
         int x = 10;
         int y = 200;
         graphics.setFont(graphics.getFont().deriveFont(Font.BOLD, 15f));
         graphics.setColor(Color.WHITE);
+
+        var boatLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
         graphics.drawString("boat loc = " + (boatLoc == null ? "null" : boatLoc.toString()), x, y += 15);
         if (active != null) {
             graphics.drawString("active route = " + active.Location + " " + active.Rank, x, y += 15);
@@ -154,6 +152,49 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
         graphics.drawString("last visited idx = " + plugin.getLastVisitedIndex(), x, y += 15);
         graphics.drawString("toad flag idx = " + plugin.getHighlightedToadFlagIndex(), x, y += 15);
+        graphics.drawString("next mote idx = " + nextMoteIndex, x, y += 15);
+    }
+
+    private void renderLastMenuCanvasWorldPointOutline(Graphics2D graphics) {
+        var pos = plugin.getLastMenuCanvasWorldPoint();
+        if (pos == null) {
+            return;
+        }
+
+        var localPoints = WorldPerspective.getInstanceLocalPointFromReal(client, pos);
+        if (localPoints == null || localPoints.isEmpty()) {
+            return;
+        }
+
+        for (var lp : localPoints) {
+            if (lp == null)
+                continue;
+            java.awt.Polygon poly = Perspective.getCanvasTilePoly(client, lp);
+            if (poly == null)
+                continue;
+
+            // Draw a translucent fill and a bold border so the tile is obvious
+            Color fill = new Color(255, 0, 255, 45);
+            Color border = Color.MAGENTA;
+            Stroke oldStroke = graphics.getStroke();
+            Composite oldComposite = graphics.getComposite();
+
+            graphics.setColor(fill);
+            graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+            graphics.fill(poly);
+
+            graphics.setComposite(oldComposite);
+            graphics.setColor(border);
+            graphics.setStroke(new BasicStroke(3f));
+            graphics.draw(poly);
+
+            // restore previous graphics state
+            graphics.setStroke(oldStroke);
+            graphics.setComposite(oldComposite);
+
+            // only draw first matching instance tile
+            break;
+        }
     }
 
     private void highlightToadFlags(Graphics2D graphics, WorldPoint player) {
@@ -164,12 +205,38 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
 
         for (var toadGameObject : toadGameObjects) {
-            // if (toadGameObject == null || toadGameObject.getWorldLocation() == null) {
-            //     continue;
-            // }
             modelOutlineRenderer.drawOutline(toadGameObject, 2, Color.MAGENTA, 2);
         }
+    }
 
+    private void highlightCrates(Graphics2D graphics) {
+        var crates = plugin.getTrialCratesById();
+
+        for (var crate : crates.values()) {
+            modelOutlineRenderer.drawOutline(crate, 2, Color.YELLOW, 2);
+        }
+    }
+
+    private void renderWindMote(Graphics2D graphics) {
+        var route = plugin.getActiveTrialRoute();
+        if (route == null || plugin.getLastVisitedIndex() < 0) {
+            return;
+        }
+        var optionalMoteIndex = route.WindMoteIndices.stream().filter(x -> x > plugin.getLastVisitedIndex()).min(Integer::compareTo);
+        nextMoteIndex = optionalMoteIndex.isPresent() ? optionalMoteIndex.get() : -1;
+        var moteWorldPoint = nextMoteIndex != -1 && nextMoteIndex - Math.max(0, plugin.getLastVisitedIndex()) < 3 ? route.Points.get(nextMoteIndex) : null;
+        if (moteWorldPoint == null) {
+            return;
+        }
+
+        var localPoint = WorldPerspective.getInstanceLocalPointFromReal(client, moteWorldPoint);
+        if (localPoint == null || localPoint.isEmpty()) {
+            return;
+        }
+
+        var img = spriteManager.getSprite(MOTE_SPRITE_ID, 0);
+        //var img = itemManager.getImage(ItemID.CAPTURED_WIND_MOTE, 1, false);
+        OverlayUtil.renderImageLocation(client, graphics, localPoint.get(0), img, 0);
     }
 
 }

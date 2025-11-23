@@ -10,6 +10,7 @@ public class TrialRoute {
     public TrialRanks Rank;
     public List<WorldPoint> Points;
     public List<ToadFlagColors> ToadOrder;
+    public List<Integer> WindMoteIndices;
 
     public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points) {
         Location = location;
@@ -18,9 +19,10 @@ public class TrialRoute {
         ToadOrder = null;
     }
 
-    public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points, List<ToadFlagColors> toadOrder) {
+    public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points, List<ToadFlagColors> toadOrder, List<Integer> windMoteIndices) {
         this(location, rank, points);
         ToadOrder = toadOrder;
+        WindMoteIndices = windMoteIndices;
     }
 
     @Override
