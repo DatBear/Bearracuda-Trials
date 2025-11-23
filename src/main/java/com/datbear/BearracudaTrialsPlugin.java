@@ -174,6 +174,48 @@ public class BearracudaTrialsPlugin extends Plugin {
             new WorldPoint(3034, 2918, 0) // return to start
     );
 
+    private static final List<WorldPoint> JubblySwordfishBestLine = List.of(
+            new WorldPoint(2436, 3018, 0),
+            new WorldPoint(2423, 3012, 0),
+            new WorldPoint(2413, 3015, 0),
+            new WorldPoint(2396, 3010, 0),
+            new WorldPoint(2373, 3008, 0),
+            new WorldPoint(2357, 2991, 0),
+            new WorldPoint(2353, 2979, 0),
+            new WorldPoint(2342, 2974, 0),
+            new WorldPoint(2323, 2976, 0),
+            new WorldPoint(2309, 2974, 0),
+            new WorldPoint(2285, 2980, 0),
+            new WorldPoint(2267, 2990, 0),
+            new WorldPoint(2251, 2995, 0),
+            new WorldPoint(2239, 3005, 0),
+            new WorldPoint(2239, 3016, 0),
+            new WorldPoint(2252, 3025, 0),
+            new WorldPoint(2261, 3021, 0),
+            new WorldPoint(2281, 2999, 0),
+            new WorldPoint(2298, 3002, 0),
+            new WorldPoint(2300, 3014, 0),
+            new WorldPoint(2311, 3021, 0),
+            new WorldPoint(2352, 3004, 0),
+            new WorldPoint(2360, 2999, 0),
+            new WorldPoint(2358, 2969, 0),
+            new WorldPoint(2358, 2960, 0),
+            new WorldPoint(2374, 2940, 0),
+            new WorldPoint(2428, 2939, 0),
+            new WorldPoint(2435, 2949, 0),
+            new WorldPoint(2436, 2985, 0),
+            new WorldPoint(2437, 2990, 0),
+            new WorldPoint(2433, 3005, 0),
+            new WorldPoint(2436, 3018, 0)//end
+    );
+
+    private static final List<ToadFlagColors> JubblySwordfishToadOrder = List.of(
+            ToadFlagColors.Orange,
+            ToadFlagColors.Teal,
+            ToadFlagColors.Pink,
+            ToadFlagColors.White//end
+    );
+
     private static final List<WorldPoint> JubblySharkBestLine = List.of(
             new WorldPoint(2436, 3018, 0),
             new WorldPoint(2422, 3012, 0),
@@ -382,6 +424,7 @@ public class BearracudaTrialsPlugin extends Plugin {
     private static final List<TrialRoute> AllTrialRoutes = List.of(
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Swordfish, TemporTantrumSwordfishBestLine),
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Marlin, TemporTantrumMarlinBestLine),
+            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Swordfish, JubblySwordfishBestLine, JubblySwordfishToadOrder, Collections.emptyList()),
             new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, JubblySharkToadOrder, Collections.emptyList()),
             new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder, JubblyMarlinWindMoteIndices));
 
