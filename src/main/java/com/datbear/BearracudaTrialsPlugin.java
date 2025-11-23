@@ -6,9 +6,11 @@ import com.google.common.base.Strings;
 import com.google.inject.Provides;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.ObjectID;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.Notifier;
 import net.runelite.client.config.ConfigManager;
@@ -51,15 +53,20 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     private static final boolean isDebug = true;
 
-    private final Set<Integer> CARGO_CONTAINER_IDS = Set.of(33733);
-    private final Set<Integer> SALVAGING_HOOK_SLOTS = Set.of(14);
-
     private final Set<String> CREW_MEMBER_NAMES = Set.of("Ex-Captain Siad", "Jobless Jim");
 
     final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
     final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159, 13160);
 
+    @Getter(AccessLevel.PACKAGE)
     private TrialInfo currentTrial = null;
+
+    @Getter(AccessLevel.PACKAGE)
+    private boolean needsTrim = false;
+
+    private final String TRIM_AVAILABLE_TEXT = "you feel a gust of wind.";
+    private final String TRIM_SUCCESS_TEXT = "you trim the sails";
+    private final String TRIM_FAIL_TEXT = "the wind dies down";
 
     @Getter(AccessLevel.PACKAGE)
     private static final List<WorldPoint> TemporTantrumSwordfishBestLine = List.of(
@@ -167,7 +174,6 @@ public class BearracudaTrialsPlugin extends Plugin {
             new WorldPoint(3034, 2918, 0) // return to start
     );
 
-    @Getter(AccessLevel.PACKAGE)
     private static final List<WorldPoint> JubblySharkBestLine = List.of(
             new WorldPoint(2436, 3018, 0),
             new WorldPoint(2422, 3012, 0),
@@ -385,7 +391,7 @@ public class BearracudaTrialsPlugin extends Plugin {
     @Getter(AccessLevel.PACKAGE)
     private int toadsThrown = 0;
 
-    private static final int VISIT_TOLERANCE = 6;
+    private static final int VISIT_TOLERANCE = 10;
 
     public void markNextWaypointVisited(final WorldPoint player, final TrialRoute route, final int tolerance) {
         if (player == null || route == null || route.Points == null || route.Points.isEmpty()) {
@@ -439,11 +445,16 @@ public class BearracudaTrialsPlugin extends Plugin {
         return out;
     }
 
+    private final Set<Integer> BOAT_WORLD_ENTITY_IDS = Set.of(12);
     // Cache of currently-spawning GameObjects keyed by object id. We only track
     // objects whose ids appear in any ToadFlagGameObject.All GameObjectIds set.
     private final Map<Integer, List<GameObject>> toadFlagsById = new HashMap<>();
     @Getter(AccessLevel.PACKAGE)
     private final Map<Integer, GameObject> trialCratesById = new HashMap<>();
+    @Getter(AccessLevel.PACKAGE)
+    private final Map<Integer, List<GameObject>> trialBoostsById = new HashMap<>();
+    @Getter(AccessLevel.PACKAGE)
+    private GameObject sailGameObject = null;
 
     // last position where the menu was opened (canvas coordinates) — used for debug 'Copy tile worldpoint'
     // so we copy according to menu-open location instead of where the mouse is at click time.
@@ -472,10 +483,6 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event) {
-        Item[] items = event.getItemContainer().getItems();
-        if (CARGO_CONTAINER_IDS.stream().anyMatch(id -> id == event.getContainerId())) {
-            cargoItemCount = (int) Arrays.stream(items).filter(x -> x.getId() != -1).count();
-        }
     }
 
     @Subscribe
@@ -527,27 +534,30 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     @Subscribe
     public void onGameObjectSpawned(GameObjectSpawned event) {
-        GameObject obj = event.getGameObject();
-        if (obj == null)
+        var obj = event.getGameObject();
+        if (obj == null) {
             return;
-        //get the animation id
-        int id = obj.getId();
-        // Only cache objects that match any ToadFlagGameObject ids
-        boolean isToadFlag = ToadFlagGameObject.All.stream().anyMatch(t -> t.GameObjectIds.contains(id));
+        }
+        var id = obj.getId();
+
+        var isToadFlag = ToadFlagGameObject.All.stream().anyMatch(t -> t.GameObjectIds.contains(id));
         if (isToadFlag) {
             toadFlagsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
-            log.info("Cached gameobject spawn id={} -> totalCount={}", id, toadFlagsById.get(id).size());
         }
-        Renderable renderable = obj.getRenderable();
+        var isSail = AllSails.GAMEOBJECT_IDS.contains(id);
+        if (isSail) {
+            sailGameObject = obj;
+        }
+        var renderable = obj.getRenderable();
         if (renderable != null) {
             if (renderable instanceof DynamicObject) {
-                DynamicObject dynObj = (DynamicObject) renderable;
+                var dynObj = (DynamicObject) renderable;
                 var anim = dynObj.getAnimation();
-                int animId = anim != null ? anim.getId() : -1;
+                var animId = anim != null ? anim.getId() : -1;
                 if (TRIAL_CRATE_ANIMS.contains(animId)) {
                     trialCratesById.put(id, obj);
                 } else if (SPEED_BOOST_ANIMS.contains(animId)) {
-
+                    trialBoostsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
                 }
             }
         }
@@ -555,17 +565,17 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     @Subscribe
     public void onGameObjectDespawned(GameObjectDespawned event) {
-        GameObject obj = event.getGameObject();
+        var obj = event.getGameObject();
         if (obj == null)
             return;
-        int id = obj.getId();
+        var id = obj.getId();
         List<GameObject> cacheList = toadFlagsById.get(id);
         if (cacheList != null) {
             cacheList.removeIf(x -> x == null || x.getHash() == obj.getHash());
             if (cacheList.isEmpty()) {
                 toadFlagsById.remove(id);
             }
-            log.info("Cached gameobject despawn id={} -> remaining={}", id, toadFlagsById.getOrDefault(id, Collections.emptyList()).size());
+            log.debug("Cached gameobject despawn id={} -> remaining={}", id, toadFlagsById.getOrDefault(id, Collections.emptyList()).size());
         }
     }
 
@@ -599,63 +609,48 @@ public class BearracudaTrialsPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onChatMessage(ChatMessage chatMessage) {
-        if (chatMessage.getType() != ChatMessageType.SPAM && chatMessage.getType() != ChatMessageType.GAMEMESSAGE) {
-            return;
-        }
-
-        //var msg = chatMessage.getMessage();
-    }
-
-    @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event) {
         if (!isDebug) {
             return;
         }
 
-        final String copyOption = "Copy worldpoint";
-        final String copyTileOption = "Copy tile worldpoint";
+        final var copyOption = "Copy worldpoint";
+        final var copyTileOption = "Copy tile worldpoint";
         if (event.getMenuOption() != null && event.getMenuOption().equals(copyOption)) {
             var player = client.getLocalPlayer();
             if (player == null)
                 return;
 
-            WorldPoint wp = BoatLocation.fromLocal(client, player.getLocalLocation());
+            var wp = BoatLocation.fromLocal(client, player.getLocalLocation());
             if (wp == null)
                 return;
 
-            String toCopy = String
-                    .format("new WorldPoint(%d, %d, %d),", wp.getX(), wp.getY(), wp.getPlane());
+            var toCopy = String.format("new WorldPoint(%d, %d, %d),", wp.getX(), wp.getY(), wp.getPlane());
 
             try {
-                java.awt.datatransfer.StringSelection sel = new java.awt.datatransfer.StringSelection(
-                        toCopy);
+                var sel = new java.awt.datatransfer.StringSelection(toCopy);
                 java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, null);
                 notifier.notify("Copied worldpoint to clipboard: " + toCopy);
             } catch (Exception ex) {
                 log.warn("Failed to copy worldpoint to clipboard: {}", ex.toString());
             }
 
-            // mark event consumed so other handlers don't process it
             event.consume();
         } else if (event.getMenuOption() != null && event.getMenuOption().equals(copyTileOption)) {
-            // Find the scene tile whose canvas polygon contains the menu position
-            // Use the stored menu-open position; fall back to current mouse pos
-            Point mouse = lastMenuCanvasPosition != null ? lastMenuCanvasPosition
-                    : client.getMouseCanvasPosition();
+            var mouse = lastMenuCanvasPosition != null ? lastMenuCanvasPosition : client.getMouseCanvasPosition();
             lastMenuCanvasWorldPoint = null;
 
             try {
-                WorldView wv = client.getTopLevelWorldView();
-                Scene scene = wv.getScene();
-                int z = wv.getPlane();
-                Tile[][][] tiles = scene.getTiles();
+                var worldView = client.getTopLevelWorldView();
+                var scene = worldView.getScene();
+                var z = worldView.getPlane();
+                var tiles = scene.getTiles();
 
                 if (tiles != null && z >= 0 && z < tiles.length) {
-                    Tile[][] plane = tiles[z];
-                    for (int x = 0; x < plane.length; x++) {
-                        for (int y = 0; y < plane[x].length; y++) {
-                            Tile tile = plane[x][y];
+                    var plane = tiles[z];
+                    for (var x = 0; x < plane.length; x++) {
+                        for (var y = 0; y < plane[x].length; y++) {
+                            var tile = plane[x][y];
                             if (tile == null)
                                 continue;
                             var lp = tile.getLocalLocation();
@@ -675,27 +670,42 @@ public class BearracudaTrialsPlugin extends Plugin {
                 // fall back to null
             }
 
-            WorldPoint wp = lastMenuCanvasWorldPoint == null ? client.getLocalPlayer() == null ? null
+            var worldPoint = lastMenuCanvasWorldPoint == null ? client.getLocalPlayer() == null ? null
                     : client.getLocalPlayer().getWorldLocation() : lastMenuCanvasWorldPoint;
-            if (wp == null)
+            if (worldPoint == null)
                 return;
 
-            String toCopy = String
-                    .format("new WorldPoint(%d, %d, %d),", wp.getX(), wp.getY(), wp.getPlane());
+            var toCopy = String.format("new WorldPoint(%d, %d, %d),", worldPoint.getX(), worldPoint.getY(), worldPoint.getPlane());
             try {
-                java.awt.datatransfer.StringSelection sel = new java.awt.datatransfer.StringSelection(
-                        toCopy);
+                var sel = new java.awt.datatransfer.StringSelection(toCopy);
                 java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, null);
                 notifier.notify("Copied tile worldpoint to clipboard: " + toCopy);
             } catch (Exception ex) {
                 log.warn("Failed to copy tile worldpoint to clipboard: {}", ex.toString());
             }
 
-            // mark event consumed so other handlers don't process it
             event.consume();
-            // Clear the stored menu-open position so we don't reuse it on
-            // subsequent clicks
+            // Clear the stored menu-open position so we don't reuse it on subsequent clicks
             lastMenuCanvasPosition = null;
+        }
+    }
+
+    @Subscribe
+    public void onChatMessage(ChatMessage e) {
+        if (e.getType() != ChatMessageType.GAMEMESSAGE && e.getType() != ChatMessageType.SPAM) {
+            log.info("[CHAT-IGNORED] {}", e.getMessage());
+            return;
+        }
+
+        String msg = e.getMessage().toLowerCase();
+        log.info("[CHAT] {}", msg);
+        if (msg == null || msg.isEmpty()) {
+            return;
+        }
+        if (msg.contains(TRIM_AVAILABLE_TEXT)) {
+            needsTrim = true;
+        } else if (msg.contains(TRIM_SUCCESS_TEXT) || msg.contains(TRIM_FAIL_TEXT)) {
+            needsTrim = false;
         }
     }
 
@@ -705,8 +715,6 @@ public class BearracudaTrialsPlugin extends Plugin {
             event.getActor().setOverheadText(" ");
             return;
         }
-        // log.info("[OVERHEAD] {} says {}", event.getActor().getName(),
-        // event.getOverheadText());
     }
 
     @Subscribe(priority = -1)
@@ -714,28 +722,28 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (client.isMenuOpen()) {
             return;
         }
+
+        var entries = swapMenuEntries(client.getMenuEntries());
         if (!isDebug) {
             return;
         }
 
-        Player p = client.getLocalPlayer();
+        var p = client.getLocalPlayer();
         if (p == null) {
             return;
         }
 
-        // Make sure we don't add duplicates — but allow adding missing entries
-        // separately so both options can be present.
-        MenuEntry[] entries = client.getMenuEntries();
-        boolean hasCopyPlayerLocation = false;
-        boolean hasCopyTileLocation = false;
+        var hasCopyPlayerLocation = false;
+        var hasCopyTileLocation = false;
         if (entries != null) {
-            for (MenuEntry me : entries) {
-                if (me == null)
+            for (var entry : entries) {
+                if (entry == null) {
                     continue;
-                if ("Copy worldpoint".equals(me.getOption())) {
+                }
+                if (entry.getOption().equals("Copy worldpoint")) {
                     hasCopyPlayerLocation = true;
                 }
-                if ("Copy tile worldpoint".equals(me.getOption())) {
+                if (entry.getOption().equals("Copy tile worldpoint")) {
                     hasCopyTileLocation = true;
                 }
             }
@@ -744,13 +752,13 @@ public class BearracudaTrialsPlugin extends Plugin {
         var list = new ArrayList<MenuEntry>();
 
         if (!hasCopyTileLocation) {
-            MenuEntry copyTile = client.getMenu().createMenuEntry(-1)
-                    .setOption("Copy tile worldpoint").setTarget("").setType(MenuAction.RUNELITE);
+            var copyTile = client.getMenu().createMenuEntry(-1).setOption("Copy tile worldpoint")
+                    .setTarget("").setType(MenuAction.RUNELITE);
             list.add(copyTile);
         }
 
         if (!hasCopyPlayerLocation) {
-            MenuEntry copyPlayer = client.getMenu().createMenuEntry(-1).setOption("Copy worldpoint")
+            var copyPlayer = client.getMenu().createMenuEntry(-1).setOption("Copy worldpoint")
                     .setTarget("").setType(MenuAction.RUNELITE);
             list.add(copyPlayer);
         }
@@ -764,23 +772,54 @@ public class BearracudaTrialsPlugin extends Plugin {
         client.setMenuEntries(list.toArray(new MenuEntry[0]));
     }
 
+    /**
+     * Move any menu entries whose option starts with "Start-previous" to the
+     * end of the list while preserving relative order.
+     */
+    private MenuEntry[] swapMenuEntries(MenuEntry[] entries) {
+        if (entries == null || entries.length == 0) {
+            return entries;
+        }
+        var toMove = new ArrayList<MenuEntry>();
+        var entriesAsList = new ArrayList<>(Arrays.asList(entries));
+        var it = entriesAsList.iterator();
+        while (it.hasNext()) {
+            var menuEntry = it.next();
+            if (menuEntry == null) {
+                continue;
+            }
+            var opt = menuEntry.getOption();
+            if (opt == null) {
+                continue;
+            }
+            if (opt.toLowerCase().startsWith("start-previous")) {
+                toMove.add(menuEntry);
+                it.remove();
+            }
+        }
+        if (!toMove.isEmpty()) {
+            entriesAsList.addAll(toMove);
+            log.info("Moved {} 'Start-previous' menu entries to end.", toMove.size());
+        }
+        entries = entriesAsList.toArray(new MenuEntry[0]);
+        return entries;
+    }
+
     private void reset() {
         // Clear runtime caches and tracked state on region change / shutdown
         toadFlagsById.clear();
         trialCratesById.clear();
+        trialBoostsById.clear();
+        sailGameObject = null;
     }
 
-    /**
-     * Return a live (unmodifiable) view of cached GameObjects for the given
-     * game object id. Returns empty list if no cached objects.
-     */
     public List<GameObject> getCachedGameObjectsForId(int id) {
         var list = toadFlagsById.get(id);
         return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
     }
 
     public List<GameObject> getCachedGameObjectsForIds(Set<Integer> ids) {
-        List<GameObject> out = new ArrayList<>();
+        var out = new ArrayList<GameObject>();
         if (ids == null || ids.isEmpty()) {
             return out;
         }
@@ -798,18 +837,22 @@ public class BearracudaTrialsPlugin extends Plugin {
             return null;
 
         for (TrialRoute r : AllTrialRoutes) {
-            if (r == null)
+            if (r == null) {
                 continue;
-            if (r.Location == currentTrial.Location && r.Rank == currentTrial.Rank)
+            }
+
+            if (r.Location == currentTrial.Location && r.Rank == currentTrial.Rank) {
                 return r;
+            }
         }
         return null;
     }
 
     public List<WorldPoint> getVisibleActiveLineForPlayer(final WorldPoint player, final int limit) {
         var rt = getActiveTrialRoute();
-        if (rt == null)
+        if (rt == null) {
             return Collections.emptyList();
+        }
 
         // Route-agnostic: delegate to generic per-route logic
         return getVisibleLineForRoute(player, rt, limit);
@@ -858,7 +901,20 @@ public class BearracudaTrialsPlugin extends Plugin {
         return Collections.emptyList();
     }
 
-    private void logCrateBoostSpawns(GameObjectSpawned event) {
+    public Collection<GameObject> getTrialBoatsToHighlight() {
+        // var route = getActiveTrialRoute();
+        // if (currentTrial == null || trialBoatsById.isEmpty() || route == null) {
+        //     return Collections.emptyList();
+        // }
+
+        // if (route.Location == TrialLocations.JubblyJive && !currentTrial.HasToads) {
+        //     return trialBoatsById.values();
+        // }
+
+        return Collections.emptyList();
+    }
+
+    private void logCrateAndBoostSpawns(GameObjectSpawned event) {
         GameObject gameObject = event.getGameObject();
         if (gameObject == null) {
             return;

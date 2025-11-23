@@ -1,6 +1,7 @@
 package com.datbear;
 
 import net.runelite.api.Point;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.*;
@@ -65,6 +66,7 @@ public class BearracudaTrialsOverlay extends Overlay {
             return null;
 
         renderLastMenuCanvasWorldPointOutline(graphics);
+        highlightTrimmableSails(graphics);
 
         var active = plugin.getActiveTrialRoute();
         if (active == null) {
@@ -78,7 +80,9 @@ public class BearracudaTrialsOverlay extends Overlay {
 
         highlightToadFlags(graphics, boatLoc);
         highlightCrates(graphics);
+        highlightBoosts(graphics);
         renderWindMote(graphics);
+        highlightTrialBoat(graphics);
 
         // Draw only the next up-to-5 waypoints (linear polyline beginning at the player's instance location).
         var visible = plugin.getVisibleActiveLineForPlayer(playerLoc, 5);
@@ -217,12 +221,36 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
     }
 
+    private void highlightBoosts(Graphics2D graphics) {
+        var boosts = plugin.getTrialBoostsById();
+
+        for (var boostList : boosts.values()) {
+            for (var boost : boostList) {
+                var poly = boost.getCanvasTilePoly();
+                if (poly != null) {
+                    OverlayUtil.renderPolygon(graphics, poly, Color.BLUE);
+                }
+            }
+        }
+    }
+
+    private void highlightTrialBoat(Graphics2D graphics) {
+        //todo come back to this it doesn't work, the boats are world entities, not sure how to highlight those
+        var boats = plugin.getTrialBoatsToHighlight();
+        if (boats == null || boats.isEmpty()) {
+            return;
+        }
+        for (var boat : boats) {
+            modelOutlineRenderer.drawOutline(boat, 2, Color.CYAN, 2);
+        }
+    }
+
     private void renderWindMote(Graphics2D graphics) {
         var route = plugin.getActiveTrialRoute();
         if (route == null || plugin.getLastVisitedIndex() < 0) {
             return;
         }
-        var optionalMoteIndex = route.WindMoteIndices.stream().filter(x -> x > plugin.getLastVisitedIndex()).min(Integer::compareTo);
+        var optionalMoteIndex = route.WindMoteIndices.stream().filter(x -> x >= plugin.getLastVisitedIndex()).min(Integer::compareTo);
         nextMoteIndex = optionalMoteIndex.isPresent() ? optionalMoteIndex.get() : -1;
         var moteWorldPoint = nextMoteIndex != -1 && nextMoteIndex - Math.max(0, plugin.getLastVisitedIndex()) < 3 ? route.Points.get(nextMoteIndex) : null;
         if (moteWorldPoint == null) {
@@ -235,8 +263,24 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
 
         var img = spriteManager.getSprite(MOTE_SPRITE_ID, 0);
-        //var img = itemManager.getImage(ItemID.CAPTURED_WIND_MOTE, 1, false);
         OverlayUtil.renderImageLocation(client, graphics, localPoint.get(0), img, 0);
+    }
+
+    private void highlightTrimmableSails(Graphics2D graphics) {
+        if (!plugin.isNeedsTrim()) {
+            return;
+        }
+
+        var sail = plugin.getSailGameObject();
+        if (sail == null) {
+            return;
+        }
+        var hull = sail.getConvexHull();
+        if (hull == null) {
+            return;
+        }
+
+        OverlayUtil.renderPolygon(graphics, hull, GREEN);
     }
 
 }
