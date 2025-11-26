@@ -771,12 +771,12 @@ public class TrialRoute {
                         ));
 
         private static final List<PortalDirection> GwenithGlideMarlinPortalDirections = List.of(
-                        new PortalDirection(4, PortalColors.White, Directions.East, Directions.SouthEast),
-                        new PortalDirection(12, PortalColors.White, Directions.North, Directions.NorthEast),
+                        new PortalDirection(4, PortalColors.White, Directions.East, Directions.EastSouthEast),
+                        new PortalDirection(12, PortalColors.White, Directions.North, Directions.NorthNorthEast),
                         new PortalDirection(18, PortalColors.Blue, Directions.East, Directions.East),
-                        new PortalDirection(28, PortalColors.Blue, Directions.West, Directions.SouthWest),
-                        new PortalDirection(33, PortalColors.Green, Directions.West, Directions.NorthWest),
-                        new PortalDirection(44, PortalColors.Green, Directions.South, Directions.SouthWest),
+                        new PortalDirection(28, PortalColors.Blue, Directions.West, Directions.WestSouthWest),
+                        new PortalDirection(33, PortalColors.Green, Directions.West, Directions.WestNorthWest),
+                        new PortalDirection(44, PortalColors.Green, Directions.South, Directions.SouthSouthWest),
                         new PortalDirection(49, PortalColors.Yellow, Directions.West, Directions.West),
                         new PortalDirection(60, PortalColors.Yellow, Directions.West, Directions.West),
                         new PortalDirection(71, PortalColors.Red, Directions.West, Directions.SouthWest),
@@ -784,9 +784,9 @@ public class TrialRoute {
                         new PortalDirection(86, PortalColors.Green, Directions.East, Directions.NorthEast),
                         new PortalDirection(94, PortalColors.Black, Directions.West, Directions.West),
                         new PortalDirection(105, PortalColors.Black, Directions.West, Directions.West),
-                        new PortalDirection(113, PortalColors.Cyan, Directions.North, Directions.NorthWest),
-                        new PortalDirection(125, PortalColors.Cyan, Directions.West, Directions.SouthWest),
-                        new PortalDirection(135, PortalColors.Pink, Directions.West, Directions.West)//
+                        new PortalDirection(113, PortalColors.Cyan, Directions.North, Directions.NorthNorthWest),
+                        new PortalDirection(125, PortalColors.Cyan, Directions.West, Directions.South),
+                        new PortalDirection(135, PortalColors.Pink, Directions.West, Directions.North)//
         );
 
         public static final List<TrialRoute> AllTrialRoutes = new ArrayList<TrialRoute>(

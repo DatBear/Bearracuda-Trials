@@ -80,6 +80,7 @@ public class BearycudaTrialsOverlay extends Overlay {
             return null;
         }
 
+        highlightObstacleTiles(graphics);
         renderPortalArrows(graphics, route, playerLocation);
         highlightToadFlags(graphics, boatLocation);
         highlightCrates(graphics);
@@ -333,10 +334,11 @@ public class BearycudaTrialsOverlay extends Overlay {
 
         if (config.showPortalRouteArrows() && portalDirection.FirstMovementDirection != portalDirection.BoatDirection) {
             renderHeadingTriangle(graphics, boatLoc, portalDirection.FirstMovementDirection, config.portalRouteArrowColor(), 100, 18);
+            renderHeadingTriangle(graphics, boatLoc, plugin.getHoveredHeadingDirection(), config.hoveredHeadingColor(), 100, 12);
         }
 
         if (config.showPortalBoatArrows()) {
-            renderHeadingTriangle(graphics, boatLoc, portalDirection.BoatDirection, config.portalBoatArrowColor(), 80, 18);
+            renderHeadingTriangle(graphics, boatLoc, portalDirection.BoatDirection, config.portalBoatArrowColor(), 100, 18);
         }
     }
 
@@ -454,6 +456,41 @@ public class BearycudaTrialsOverlay extends Overlay {
         graphics.drawPolygon(xs, ys, 3);
 
         graphics.setStroke(previous);
+    }
+
+    private void highlightObstacleTiles(Graphics2D graphics) {
+        if (!config.showObstacleOutlines()) {
+            return;
+        }
+
+        var obstacleWorldPoints = plugin.getObstacleWorldPoints();
+        if (obstacleWorldPoints == null || obstacleWorldPoints.isEmpty()) {
+            return;
+        }
+
+        Color obstacleColor = Color.RED;
+
+        for (WorldPoint obstacleWorldPoint : obstacleWorldPoints) {
+            if (obstacleWorldPoint == null) {
+                continue;
+            }
+
+            var localPoints = WorldPerspective.getInstanceLocalPointFromReal(client, obstacleWorldPoint);
+            if (localPoints == null || localPoints.isEmpty()) {
+                continue;
+            }
+
+            for (LocalPoint localPoint : localPoints) {
+                if (localPoint == null) {
+                    continue;
+                }
+
+                Polygon polygon = Perspective.getCanvasTilePoly(client, localPoint);
+                if (polygon != null) {
+                    OverlayUtil.renderPolygon(graphics, polygon, obstacleColor);
+                }
+            }
+        }
     }
 
 }

@@ -113,6 +113,22 @@ public interface BearycudaTrialsConfig extends Config {
         return new Color(0, 255, 0, 200);
     }
 
+    @ConfigItem(keyName = "showObstacleOutlines", name = "Show obstacle outlines", description = "Toggle outlining of obstacle tiles during trials", section = outlines, position = 19)
+    default boolean showObstacleOutlines() {
+        return false;
+    }
+
+    @Alpha
+    @ConfigItem(keyName = "obstacleOutlineColor", name = "Obstacle outline color", description = "Color used to outline obstacle tiles", section = outlines, position = 20)
+    default Color obstacleOutlineColor() {
+        return new Color(255, 0, 0, 255);
+    }
+
+    @ConfigItem(keyName = "hideDecorations", name = "Hide decorations", description = "Hide decorative objects during trials", section = outlines, position = 21)
+    default boolean hideDecorations() {
+        return true;
+    }
+
     // true boat tile / heading
     @ConfigItem(keyName = "showBoatTrueTile", name = "Show true boat tile", description = "Highlight the boat's true tile", section = boatTrueTileHeading, position = 1)
     default boolean showBoatTrueTile() {

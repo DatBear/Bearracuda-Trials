@@ -7,11 +7,13 @@
 #### Jubbly Jive
 - Shows range indicators for Jubbly Jive flags.
 - Shows when to use wind motes.
+- Hide decorations option will hide the green bubbles on the course that are not obstacles.
 
 ### Gwenith Glide
 
 - Shows which direction the boat will face when exiting portals.
 - Shows which direction the immediate route takes when exiting portals.
+- Hide decorations option will hide the animated crystals on the course that are not obstacles.
 
 ### True Tile
 

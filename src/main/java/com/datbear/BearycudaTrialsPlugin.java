@@ -5,20 +5,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.datbear.data.AllSails;
-import com.datbear.data.Directions;
-import com.datbear.data.PortalDirection;
-import com.datbear.data.ToadFlagGameObject;
-import com.datbear.data.TrialInfo;
-import com.datbear.data.TrialLocations;
-import com.datbear.data.TrialRoute;
-import com.datbear.ui.RouteModificationHelper;
+import com.datbear.data.*;
+import com.datbear.ui.*;
 import com.google.common.base.Strings;
 import com.google.inject.Provides;
 
@@ -32,9 +27,11 @@ import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.Model;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Point;
 import net.runelite.api.Renderable;
+import net.runelite.api.Scene;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameObjectDespawned;
@@ -79,6 +76,7 @@ public class BearycudaTrialsPlugin extends Plugin {
 
     private final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
     private final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159, 13160, 13163);
+    private final Set<Integer> DECORATION_ANIMS = Set.of(1071, 13537, 13538, 13539);
 
     private final String TRIM_AVAILABLE_TEXT = "you feel a gust of wind.";
     private final String TRIM_SUCCESS_TEXT = "you trim the sails";
@@ -122,6 +120,11 @@ public class BearycudaTrialsPlugin extends Plugin {
     private GameObject sailGameObject = null;
 
     @Getter(AccessLevel.PACKAGE)
+    private final Map<Integer, List<GameObject>> obstacleGameObjectsById = new HashMap<>();
+    @Getter(AccessLevel.PACKAGE)
+    private final Set<WorldPoint> obstacleWorldPoints = new HashSet<>();
+
+    @Getter(AccessLevel.PACKAGE)
     private Point lastMenuCanvasPosition = null;
     @Getter(AccessLevel.PACKAGE)
     private WorldPoint lastMenuCanvasWorldPoint = null;
@@ -159,72 +162,6 @@ public class BearycudaTrialsPlugin extends Plugin {
 
     @Getter(AccessLevel.PACKAGE)
     private Directions hoveredHeadingDirection = Directions.North;
-
-    private void manageHeadingClicks(MenuOptionClicked event) {
-        if (event.getMenuAction() != MenuAction.SET_HEADING) {
-            return;
-        }
-        //log.info("[SET HEADING] {}", event);
-        requestedHeadingDirection = Directions.values()[event.getId()];
-    }
-
-    private void updateCurrentHeading() {
-        if (currentHeadingDirection == null) {
-            currentHeadingDirection = Directions.South;
-        }
-
-        if (requestedHeadingDirection == null) {
-            requestedHeadingDirection = currentHeadingDirection;
-            return;
-        }
-
-        if (currentHeadingDirection == requestedHeadingDirection) {
-            return;
-        }
-
-        Directions[] all = Directions.values();
-        int n = all.length;
-        int currentIndex = currentHeadingDirection.ordinal();
-        int targetIndex = requestedHeadingDirection.ordinal();
-
-        int forwardSteps = (targetIndex - currentIndex + n) % n;
-        int backwardSteps = (currentIndex - targetIndex + n) % n;
-
-        if (forwardSteps == 0) {
-            return;
-        }
-
-        if (forwardSteps <= backwardSteps) {
-            currentIndex = (currentIndex + 1) % n;
-        } else {
-            currentIndex = (currentIndex - 1 + n) % n;
-        }
-
-        currentHeadingDirection = all[currentIndex];
-    }
-
-    private void manageHeadingHovers(PostMenuSort event) {
-        var entries = client.getMenuEntries();
-        var headingEntry = Arrays.stream(entries)
-                .filter(e -> e.getOption().equals("Set heading"))
-                .findFirst().orElse(null);
-        if (headingEntry != null) {
-            //log.info("[SET HEADING HOVER] {}", headingEntry);
-            hoveredHeadingDirection = Directions.values()[headingEntry.getIdentifier()];
-        }
-    }
-
-    private void updateFromVarbits() {
-        //todo check VarbitID.SAILING_BOAT_TIME_TILL_TRIM and VarbitID.SAILING_BOAT_TIME_TRIM_WINDOW to see if they're working in the future
-        boatSpawnedAngle = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_ANGLE);
-        boatSpawnedFineX = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_FINEX);
-        boatSpawnedFineZ = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_FINEZ);
-        boatBaseSpeed = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_BASESPEED);
-        boatSpeedCap = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_SPEEDCAP);
-        boatSpeedBoostDuration = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_SPEEDBOOST_DURATION);
-        boatAcceleration = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_ACCELERATION);
-        isInTrial = client.getVarbitValue(VarbitID.SAILING_BT_IN_TRIAL);
-    }
 
     @Override
     protected void startUp() {
@@ -280,7 +217,8 @@ public class BearycudaTrialsPlugin extends Plugin {
     @Subscribe
     public void onVarbitChanged(VarbitChanged event) {
         if (event.getVarbitId() == VarbitID.SAILING_BOAT_SPAWNED_ANGLE) {
-            boatSpawnedAngle = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_ANGLE);
+            //log.info("[ANGLE VARBIT CHANGED] {}", event.getValue());
+            boatSpawnedAngle = event.getValue();
             updateCurrentHeadingFromVarbit(boatSpawnedAngle);
         }
     }
@@ -291,7 +229,9 @@ public class BearycudaTrialsPlugin extends Plugin {
         if (ordinal < 0 || ordinal >= directions.length) {
             return;
         }
-        currentHeadingDirection = directions[ordinal];
+        var newDir = directions[ordinal];
+        //log.info("[UPDATE HEADING FROM VARBIT] {} = {}", value, newDir);
+        currentHeadingDirection = newDir;
     }
 
     @Subscribe
@@ -305,6 +245,35 @@ public class BearycudaTrialsPlugin extends Plugin {
         var isToadFlag = ToadFlagGameObject.All.stream().anyMatch(t -> t.GameObjectIds.contains(id));
         if (isToadFlag) {
             toadFlagsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
+        }
+        var isObstacle = ObstacleTracking.OBSTACLE_GAMEOBJECT_IDS.contains(id);
+        if (isObstacle && currentTrial != null && config.showObstacleOutlines()) {
+            obstacleGameObjectsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
+            // Add world points for all tiles covered by this obstacle's footprint
+            try {
+                var worldView = client.getTopLevelWorldView();
+                var scene = worldView != null ? worldView.getScene() : null;
+                if (scene != null) {
+                    var min = obj.getSceneMinLocation();
+                    var max = obj.getSceneMaxLocation();
+                    if (min != null && max != null) {
+                        int plane = worldView.getPlane();
+                        for (int x = min.getX(); x <= max.getX(); x++) {
+                            for (int y = min.getY(); y <= max.getY(); y++) {
+                                WorldPoint wp = WorldPoint.fromScene(worldView, x, y, plane);
+                                obstacleWorldPoints.add(wp);
+                            }
+                        }
+                    } else {
+                        obstacleWorldPoints.add(obj.getWorldLocation());
+                    }
+                } else {
+                    obstacleWorldPoints.add(obj.getWorldLocation());
+                }
+            } catch (Exception ex) {
+                obstacleWorldPoints.add(obj.getWorldLocation());
+            }
+            removeGameObjectFromScene(obj);
         }
         var isSail = AllSails.GAMEOBJECT_IDS.contains(id);
         if (isSail) {
@@ -320,6 +289,10 @@ public class BearycudaTrialsPlugin extends Plugin {
                     trialCratesById.put(id, obj);
                 } else if (SPEED_BOOST_ANIMS.contains(animId)) {
                     trialBoostsById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
+                } else if (DECORATION_ANIMS.contains(animId)) {
+                    if (config.hideDecorations()) {
+                        removeGameObjectFromScene(obj);
+                    }
                 }
             }
         }
@@ -699,6 +672,7 @@ public class BearycudaTrialsPlugin extends Plugin {
         trialCratesById.clear();
         trialBoostsById.clear();
         sailGameObject = null;
+        requestedHeadingDirection = currentHeadingDirection;
     }
 
     private void updateToadsThrown(TrialInfo newTrialInfo) {
@@ -874,6 +848,87 @@ public class BearycudaTrialsPlugin extends Plugin {
         return Collections.emptyList();
     }
 
+    private void manageHeadingClicks(MenuOptionClicked event) {
+        if (event.getMenuAction() != MenuAction.SET_HEADING) {
+            return;
+        }
+        //log.info("[SET HEADING] {}", event);
+        requestedHeadingDirection = Directions.values()[event.getId()];
+    }
+
+    private void updateCurrentHeading() {
+        if (currentHeadingDirection == null) {
+            currentHeadingDirection = Directions.South;
+        }
+
+        if (requestedHeadingDirection == null) {
+            requestedHeadingDirection = currentHeadingDirection;
+            return;
+        }
+
+        if (currentHeadingDirection == requestedHeadingDirection) {
+            return;
+        }
+
+        Directions[] all = Directions.values();
+        int n = all.length;
+        int currentIndex = currentHeadingDirection.ordinal();
+        int targetIndex = requestedHeadingDirection.ordinal();
+
+        int forwardSteps = (targetIndex - currentIndex + n) % n;
+        int backwardSteps = (currentIndex - targetIndex + n) % n;
+
+        if (forwardSteps == 0) {
+            return;
+        }
+
+        if (forwardSteps <= backwardSteps) {
+            currentIndex = (currentIndex + 1) % n;
+        } else {
+            currentIndex = (currentIndex - 1 + n) % n;
+        }
+
+        currentHeadingDirection = all[currentIndex];
+    }
+
+    private void manageHeadingHovers(PostMenuSort event) {
+        var entries = client.getMenuEntries();
+        var headingEntry = Arrays.stream(entries)
+                .filter(e -> e.getOption().equals("Set heading"))
+                .findFirst().orElse(null);
+        if (headingEntry != null) {
+            //log.info("[SET HEADING HOVER] {}", headingEntry);
+            hoveredHeadingDirection = Directions.values()[headingEntry.getIdentifier()];
+        }
+    }
+
+    private void updateFromVarbits() {
+        //todo check VarbitID.SAILING_BOAT_TIME_TILL_TRIM and VarbitID.SAILING_BOAT_TIME_TRIM_WINDOW to see if they're working in the future
+        boatSpawnedAngle = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_ANGLE);
+        boatSpawnedFineX = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_FINEX);
+        boatSpawnedFineZ = client.getVarbitValue(VarbitID.SAILING_BOAT_SPAWNED_FINEZ);
+        boatBaseSpeed = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_BASESPEED);
+        boatSpeedCap = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_SPEEDCAP);
+        boatSpeedBoostDuration = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_SPEEDBOOST_DURATION);
+        boatAcceleration = client.getVarbitValue(VarbitID.SAILING_SIDEPANEL_BOAT_ACCELERATION);
+        isInTrial = client.getVarbitValue(VarbitID.SAILING_BT_IN_TRIAL);
+    }
+
+    private void removeGameObjectFromScene(GameObject gameObject) {
+        if (gameObject != null) {
+            Renderable renderable = gameObject == null ? null : gameObject.getRenderable();
+            if (renderable != null) {
+                Model model = renderable instanceof Model ? (Model) renderable : renderable.getModel();
+                if (model != null) {
+                    Scene scene = client.getTopLevelWorldView().getScene();
+                    if (scene != null) {
+                        scene.removeGameObject(gameObject);
+                    }
+                }
+            }
+        }
+    }
+
     private void logCrateAndBoostSpawns(GameObjectSpawned event) {
         GameObject gameObject = event.getGameObject();
         if (gameObject == null) {
@@ -903,10 +958,7 @@ public class BearycudaTrialsPlugin extends Plugin {
         try {
             wp = gameObject.getWorldLocation();
         } catch (Exception ex) {
-            log.info(
-                    "GameObject (id={}) spawned but getWorldLocation threw: {}",
-                    gameObject.getId(),
-                    ex.toString());
+            log.info("GameObject (id={}) spawned but getWorldLocation threw: {}", gameObject.getId(), ex.toString());
         }
 
         ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
