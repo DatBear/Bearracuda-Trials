@@ -114,19 +114,19 @@ public interface BearycudaTrialsConfig extends Config {
     }
 
     // true boat tile / heading
-    @ConfigItem(keyName = "showTrueBoatTile", name = "Show true boat tile", description = "Highlight the boat's true tile", section = boatTrueTileHeading, position = 1)
-    default boolean showTrueBoatTile() {
+    @ConfigItem(keyName = "showBoatTrueTile", name = "Show true boat tile", description = "Highlight the boat's true tile", section = boatTrueTileHeading, position = 1)
+    default boolean showBoatTrueTile() {
         return true;
     }
 
     @Alpha
-    @ConfigItem(keyName = "trueBoatTileFillColor", name = "True boat tile fill color", description = "Fill color for the boat's true tile", section = boatTrueTileHeading, position = 2)
-    default Color trueBoatTileFillColor() {
+    @ConfigItem(keyName = "boatTrueTileFillColor", name = "True boat tile fill color", description = "Fill color for the boat's true tile", section = boatTrueTileHeading, position = 2)
+    default Color boatTrueTileFillColor() {
         return new Color(255, 255, 255, 45);
     }
 
-    @ConfigItem(keyName = "trueBoatTileBorderColor", name = "True boat tile border color", description = "Border color for the boat's true tile", section = boatTrueTileHeading, position = 3)
-    default Color trueBoatTileBorderColor() {
+    @ConfigItem(keyName = "boatTrueTileBorderColor", name = "True boat tile border color", description = "Border color for the boat's true tile", section = boatTrueTileHeading, position = 3)
+    default Color boatTrueTileBorderColor() {
         return Color.BLACK;
     }
 

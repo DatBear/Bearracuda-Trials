@@ -101,16 +101,16 @@ public class BearycudaTrialsOverlay extends Overlay {
     }
 
     private void renderTrueInfo(Graphics2D graphics, WorldPoint boatLocation, WorldPoint playerLocation) {
-        if (config.showTrueBoatTile()) {
+        if (config.showBoatTrueTile()) {
             highlightBoatTrueTile(graphics, boatLocation);
-        }
-
-        if (config.showRequestedHeading()) {
-            renderHeadingTriangle(graphics, playerLocation, plugin.getRequestedHeadingDirection(), config.requestedHeadingColor(), 30, 8);
         }
 
         if (config.showHoveredHeading()) {
             renderHeadingTriangle(graphics, playerLocation, plugin.getHoveredHeadingDirection(), config.hoveredHeadingColor(), 30, 8);
+        }
+
+        if (config.showRequestedHeading()) {
+            renderHeadingTriangle(graphics, playerLocation, plugin.getRequestedHeadingDirection(), config.requestedHeadingColor(), 30, 8);
         }
 
         if (config.showCurrentHeading()) {
@@ -354,8 +354,8 @@ public class BearycudaTrialsOverlay extends Overlay {
                 continue;
 
             // Draw a translucent fill and a bold border so the tile is obvious
-            Color fill = config.trueBoatTileFillColor();
-            Color border = config.trueBoatTileBorderColor();
+            Color fill = config.boatTrueTileFillColor();
+            Color border = config.boatTrueTileBorderColor();
             Stroke oldStroke = graphics.getStroke();
             Composite oldComposite = graphics.getComposite();
 
